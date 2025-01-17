@@ -69,3 +69,8 @@ proc sql;
 			on c.unitid=a.unitid)
 		on gr.unitid = c.unitid;
 quit;
+
+
+proc copy in=work out=git;
+    select regdata;
+run; 
