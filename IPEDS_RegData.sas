@@ -24,8 +24,22 @@ aid calculated columns:
 	LoanAvg > ufloant / scfa2
 
 tuition and costs table:
-	tuition1, fee1, tuition2, fee2, tuition3, fee3
-	room, roomcap, board, roomamt, boardamt
+	CALCULATED:
+	InDistrictT > 1 if tuition1 is different from tuition2, 0 if not
+	InDistrictTDiff > Absolute difference between tuition2 and tuition1
+	InDistrictF > 1 if fee1 is different from fee2, 0 if not
+	InDistrictFDiff > Absolute difference between fee2 and fee1
+	InStateT > Rename of Tuition2
+	InStateF > Rename of Fee2
+	OutStateT > 1 if tuition3 is different from tuition2, 0 if not
+	OutStateTDiff > Absolute difference between tuition3 and tuition2
+	OutStateF > 1 if fee3 is different from fee2, 0 if not
+	OutStateFDiff > Absolute difference between fee3 and fee2
+	Housing > room; Map to 0 for no, 1 for yes
+	ScaledHousingCap > roomcap / scfa2 (from Aid table)
+
+	DIRECT FROM TABLE:
+	board, roomamt, boardamt
 
 salary + aid calculated columns:
 	AvgSalary > sa09mot--Salaries / sa09mct--Salaries
@@ -40,13 +54,13 @@ proc sql;
 		gr.unitid, cohort, rate,
 
 		/*characteristics columns*/
-		iclevel format=iclevel., 
-		control format=control.,
-		hloffer format=hloffer.,
-		locale format=locale.,
-		instcat format=instcat., 
-		c21enprf format=c21enprf.,
-		cbsatype format=cbsatype.,
+		iclevel, 
+		control,
+		hloffer,
+		locale,
+		instcat, 
+		c21enprf,
+		cbsatype,
 
 		/*aid calculated columns*/
 		(uagrntn/scfa2) as GrantRate format=percent8.2,
@@ -56,9 +70,33 @@ proc sql;
 		(ufloant/scfa2) as LoanAvg,
 
 		/*tuition and costs columns*/
-		tuition1, fee1, tuition2, fee2, tuition3, fee3,
-		room format=room., roomcap, board format=board.,
-		roomamt, boardamt,
+		case 
+			when tuition1 eq tuition2 then 0
+			when tuition1 ne tuition2 then 1
+		end as InDistrictT,
+		(abs(tuition2 - tuition1)) as InDistrictTDiff,
+		case 
+			when fee1 eq fee2 then 0
+			when fee1 ne fee2 then 1
+		end as InDistrictF,
+		(abs(fee2 - fee1)) as InDistrictFDiff,
+		tuition2 as InStateT, fee2 as InStateF,
+		case 
+			when tuition3 eq tuition2 then 0
+			when tuition3 ne tuition2 then 1
+		end as OutStateT,
+		(abs(tuition3 - tuition2)) as OutStateTDiff,
+		case 
+			when fee3 eq fee2 then 0
+			when fee3 ne fee2 then 1
+		end as OutStateF,
+		(abs(fee3 - fee2)) as OutStateFDiff,
+		case
+			when room eq 2 then 0
+			when room eq 1 then 1
+		end as Housing,
+		(roomcap / scfa2) as ScaledHousingCap,
+		board, roomamt, boardamt,
 
 		/*salary + aid calculated columns*/
 		(sa09mot/sa09mct) as AvgSalary,
