@@ -37,9 +37,9 @@ tuition and costs table:
 	OutStateFDiff > Absolute difference between fee3 and fee2
 	Housing > room; Map to 0 for no, 1 for yes
 	ScaledHousingCap > roomcap / scfa2 (from Aid table)
-
-	DIRECT FROM TABLE:
-	board, roomamt, boardamt
+	board > Remap no to zero, leave other levels as in original encoding
+	roomamt > Change missings to zero when board is no
+	boardamt > Change missings to zero when board is no
 
 salary + aid calculated columns:
 	AvgSalary > sa09mot--Salaries / sa09mct--Salaries
@@ -96,7 +96,18 @@ proc sql;
 			when room eq 1 then 1
 		end as Housing,
 		(roomcap / scfa2) as ScaledHousingCap,
-		board, roomamt, boardamt,
+		case
+			when board eq 3 then 0
+			else board
+		end as board, 
+		case
+			when board eq 3 then roomamt eq 0
+			else roomamt
+		end as roomamt,
+		case
+			when board eq 3 then boardamt eq 0
+			else boardamt
+		end as boardamt,
 
 		/*salary + aid calculated columns*/
 		(sa09mot/sa09mct) as AvgSalary,
