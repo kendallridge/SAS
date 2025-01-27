@@ -3,6 +3,11 @@ libname GITHUB '~/GITHUB';
 %let rc=%sysfunc(dlgcdir('~'));
 options fmtsearch=(IPEDS);
 
+/*lets you run code file without opening it
+
+could have issues with file structure/ folders, etc*/
+%include '~/IPEDS/Graduation Spec Generator.sas';
+
 /* 
 gradrates table:
 	unitid, cohort, rate 
@@ -68,9 +73,8 @@ proc sql;
 					on a.unitid = tc.unitid)
 			on c.unitid=a.unitid)
 		on gr.unitid = c.unitid;
-quit;
+quit; 
 
-
-proc copy in=work out=git;
-    select regdata;
-run; 
+proc compare base=work.regdata
+	compare=work.model_data;
+run;
