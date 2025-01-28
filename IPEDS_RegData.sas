@@ -3,9 +3,8 @@ libname GITHUB '~/GITHUB';
 %let rc=%sysfunc(dlgcdir('~'));
 options fmtsearch=(IPEDS);
 
-/*lets you run code file without opening it
-
-could have issues with file structure/ folders, etc*/
+/*lets you run code file without opening it,
+	could have issues with file structure/ folders, etc*/
 %include '~/IPEDS/Graduation Spec Generator.sas';
 
 /* 
@@ -48,18 +47,20 @@ salary + aid calculated columns:
  */
 
 proc sql;
+	create table avgsalary as
+	select unitid, avg(sa09mot) as TotalSalary,
+		avg(sa09mct) as TotalStaff
+	from ipeds.salaries
+	group by unitid;
+
 	create table regdata as
 	select 
 		/*grad rate columns*/
 		gr.unitid, cohort, rate,
 
 		/*characteristics columns*/
-		iclevel, 
-		control,
-		hloffer,
-		locale,
-		instcat, 
-		c21enprf,
+		iclevel, control, hloffer,
+		locale, instcat, c21enprf,
 		cbsatype,
 
 		/*aid calculated columns*/
@@ -111,20 +112,30 @@ proc sql;
 		end as boardamt,
 
 		/*salary + aid calculated columns*/
-		(sa09mot/sa09mct) as AvgSalary,
-		(scfa2/sa09mct) as StuFacRatio format=8.1
+		(TotalSalary/ TotalStaff) as AvgSalary,
+		(scfa2/ TotalStaff) as StuFacRatio format=8.1
 	
 	from ipeds.gradrates as gr
-		inner join (ipeds.characteristics as c
-			inner join (ipeds.aid as a 
-				inner join (ipeds.tuitionandcosts as tc
-					inner join ipeds.salaries as s
-						on tc.unitid = s.unitid)
-					on a.unitid = tc.unitid)
-			on c.unitid=a.unitid)
-		on gr.unitid = c.unitid;
+      inner join ipeds.characteristics as c
+         on gr.unitid = c.unitid
+      inner join ipeds.aid as a 
+         on gr.unitid = a.unitid
+      inner join ipeds.tuitionandcosts as tc
+         on gr.unitid = tc.unitid
+      inner join work.avgsalary as s
+         on gr.unitid = s.unitid;
 quit; 
 
+/* validate my data against someone else's data */
 proc compare base=work.regdata
 	compare=work.model_data;
+run;
+
+/* create a reg model */
+ods trace on;
+proc glmselect data=regdata;
+	class iclevel control;
+	model rate = cohort iclevel--StuFacRatio /
+    	selection=stepwise(select=sl slentry=0.05 slstay=0.05 choose=AIC)
+			stats=(AIC);
 run;
