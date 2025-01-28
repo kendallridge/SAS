@@ -94,6 +94,7 @@ proc sql;
 		case
 			when room eq 2 then 0
 			when room eq 1 then 1
+			else room
 		end as Housing,
 		(roomcap / scfa2) as ScaledHousingCap,
 		case
