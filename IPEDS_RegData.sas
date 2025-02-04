@@ -1,11 +1,6 @@
 libname IPEDS '~/IPEDS';
-libname GITHUB '~/GITHUB';
 %let rc=%sysfunc(dlgcdir('~'));
 options fmtsearch=(IPEDS);
-
-/*lets you run code file without opening it,
-	could have issues with file structure/ folders, etc*/
-%include '~/IPEDS/Graduation Spec Generator.sas';
 
 /* 
 gradrates table:
@@ -134,8 +129,14 @@ run;
 /* create a reg model */
 ods trace on;
 proc glmselect data=regdata;
-	class iclevel control;
+	class c21enprf;
 	model rate = cohort iclevel--StuFacRatio /
-    	selection=stepwise(select=sl slentry=0.05 slstay=0.05 choose=AIC)
-			stats=(AIC);
+    	selection=stepwise(select=aic stop=aic choose=AIC);
+	
+	/*save tables for creating model validation table*/
+	ods output modelinfo=modelinfo
+		nobs=nobs
+		selectionsummary=selection
+		parameterestimates=parameters;	   
 run;
+
